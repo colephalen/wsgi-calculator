@@ -41,32 +41,83 @@ To submit your homework:
 
 """
 
-
 def add(*args):
-    """ Returns a STRING with the sum of the arguments """
+    sm = 0.0
+    for i in args: sm += float(i)
+    add_sum = str(sm)
+    return add_sum
 
-    # TODO: Fill sum with the correct value, based on the
-    # args provided.
-    sum = "0"
 
-    return sum
+def subtract(*args):
+    sm = float(args[0])*2
+    for i in args: sm -= float(i)
+    sub_sum = str(sm)
+    return sub_sum
 
-# TODO: Add functions for handling more arithmetic operations.
+
+def multiply(*args):
+    sm = 1.0
+    for i in args: sm *= float(i)
+    mul_sum = str(sm)
+    return mul_sum
+
+
+def divide(*args):
+    sm = float(args[0])*float(args[0])
+    for i in args: sm /= float(i)
+    div_sum = str(sm)
+    return div_sum
+
+
+def how_to():
+    the_stuff = """
+    <html>
+    <head><title>Its MATH!</title></head>
+    <h1>How2 Calculator</h1>
+    <h2>Addition</h2>
+    <p>Go to localhost:8080/add/x/x/x...
+    <p>Where x is the numbers you would like to add together.</p>
+    <p>Each x can be different, and there is no limit to the number of x's you use.</p>
+    <p>Be sure to include '/' after 8080 and 'add' and after each input variable.</p>
+    <h2>Subtraction</h2>
+    <p>
+    See Addition but in place of 'add' use 'subtract'.
+    </p>
+    <h2>Multiplication</h2>
+    <p>
+    See Addition but in place of 'add' use 'multiply'.
+    </p>
+    <h2>Division</h2>
+    <p>
+    See Addition but in place of 'add' use 'divide'.
+    </p>
+    </html>
+    """
+    return the_stuff
+
 
 def resolve_path(path):
-    """
-    Should return two values: a callable and an iterable of
-    arguments.
-    """
+    # from books stuff, ~should~ work fine
+    funcs = {
+    '': how_to, 
+    'add': add,
+    'subtract': subtract,
+    'multiply': multiply,
+    'divide': divide
+    }
+    path = path.strip('/').split('/')
 
-    # TODO: Provide correct values for func and args. The
-    # examples provide the correct *syntax*, but you should
-    # determine the actual values of func and args using the
-    # path.
-    func = add
-    args = ['25', '32']
+    func_name = path[0]
+    args = path[1:]
+
+    try:
+        func = funcs[func_name]
+    except KeyError:
+        raise NameError
 
     return func, args
+
+
 
 def application(environ, start_response):
     # TODO: Your application code from the book database
@@ -76,9 +127,32 @@ def application(environ, start_response):
     #
     # TODO (bonus): Add error handling for a user attempting
     # to divide by zero.
-    pass
+    headers = [('Content-type', 'text/html')]
+    try:
+        path = environ.get('PATH_INFO', None)
+        if path is None:
+            raise NameError
+        func, args = resolve_path(path)
+        body = func(*args)
+        status = "200 OK"
+    except NameError:
+        status = '404 Not Found stupid'
+        body = '<h1>Not Found stupid</h1>'
+    except ZeroDivisionError:
+        status = 'x/0 is undefined bro!'
+        body = '<h1>x/0 is undefined bro!!</h1>'
+    except Exception as e:
+        status = '500 Internal Server Error dummy'
+        body = f'<h1>Internal Server Error\ndummy {e}</h1>'
+        print(traceback.format_exc())
+    finally:
+        headers.append(('Content-length', str(len(body))))
+        start_response(status, headers)
+        return [body.encode('utf-8')]
+
 
 if __name__ == '__main__':
-    # TODO: Insert the same boilerplate wsgiref simple
     # server creation that you used in the book database.
-    pass
+    from wsgiref.simple_server import make_server
+    srv = make_server('localhost', 8080, application)
+    srv.serve_forever()
